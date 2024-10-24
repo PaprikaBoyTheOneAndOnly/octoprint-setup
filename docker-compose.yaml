@@ -1,0 +1,61 @@
+version: '3.3'
+
+services:
+  octoprint:
+    image: octoprint/octoprint
+    restart: unless-stopped
+    ports:
+      - 81:80
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0
+    volumes:
+      - octoprint:/octoprint
+    environment:
+      - ENABLE_MJPG_STREAMER=true
+
+  mjpg-streamer:
+    image: mjpg-streamer
+    restart: always
+    ports:
+      - 82:8080
+    environment:
+      - LD_LIBRARY_PATH=.
+      - INPUT=input_libcamera.so -r 1920x1080 -f 30
+      - OUTPUT=/usr/local/lib/mjpg-streamer/output_http.so -w /usr/local/share/mjpg-streamer/www -p 8080
+      - COMMAND=ls -la /usr/local/lib/mjpg-streamer/
+    volumes:
+      - /run/udev:/run/udev:ro
+    depends_on:
+      - octoprint
+  
+config-editor:
+    image: linuxserver/code-server
+    ports:
+      - 8443:8443
+    depends_on:
+      - octoprint
+    restart: unless-stopped
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=Europe/Zurich
+    volumes:
+      - octoprint:/octoprint
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    restart: always
+    depends_on:
+      - octoprint
+    command:
+      - "http"
+      - "http://octoprint:80"
+      - "--oauth=google"
+      - "--oauth-allow-email=janhasler01@gmail.com"
+      - "--url=dane-tender-publicly.ngrok-free.app"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - 4040:4040
+volumes:
+  octoprint: {}
