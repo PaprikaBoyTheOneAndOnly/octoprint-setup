@@ -52,7 +52,7 @@ config-editor:
       - "http://octoprint:80"
       - "--oauth=google"
       - "--oauth-allow-email=janhasler01@gmail.com"
-      - "--url=dane-tender-publicly.ngrok-free.app"
+      - "--url=${NGROK_URL}"
     environment:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
