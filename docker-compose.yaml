@@ -13,22 +13,7 @@ services:
     environment:
       - ENABLE_MJPG_STREAMER=true
 
-  mjpg-streamer:
-    image: mjpg-streamer
-    restart: always
-    ports:
-      - 82:8080
-    environment:
-      - LD_LIBRARY_PATH=.
-      - INPUT=input_libcamera.so -r 1920x1080 -f 30
-      - OUTPUT=/usr/local/lib/mjpg-streamer/output_http.so -w /usr/local/share/mjpg-streamer/www -p 8080
-      - COMMAND=ls -la /usr/local/lib/mjpg-streamer/
-    volumes:
-      - /run/udev:/run/udev:ro
-    depends_on:
-      - octoprint
-  
-config-editor:
+  config-editor:
     image: linuxserver/code-server
     ports:
       - 8443:8443
@@ -42,7 +27,7 @@ config-editor:
     volumes:
       - octoprint:/octoprint
 
-  ngrok:
+  ngrok-octo:
     image: ngrok/ngrok:latest
     restart: always
     depends_on:
@@ -57,5 +42,24 @@ config-editor:
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
     ports:
       - 4040:4040
+
+  ngrok-jpeg:
+    image: ngrok/ngrok:latest
+    network_mode: host
+    restart: always
+    command:
+      - "http"
+      - "http://localhost:8080"
+      - "--oauth=google"
+      - "--oauth-allow-email=janhasler01@gmail.com"
+      - "--url=${NGROK_URL_2}"
+      - "--config"
+      - "/etc/ngrok.yml"
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_2}
+    ports:
+      - 4041:4041
 volumes:
   octoprint: {}
