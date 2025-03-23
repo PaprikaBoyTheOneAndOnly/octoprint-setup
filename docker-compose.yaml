@@ -1,17 +1,16 @@
-version: '3.3'
+version: '3.7'
 
 services:
   octoprint:
     image: octoprint/octoprint
     restart: unless-stopped
-    ports:
-      - 81:80
     devices:
       - /dev/ttyUSB0:/dev/ttyUSB0
     volumes:
       - octoprint:/octoprint
     environment:
       - ENABLE_MJPG_STREAMER=true
+    network_mode: service:tailscale
 
   config-editor:
     image: linuxserver/code-server
@@ -27,39 +26,22 @@ services:
     volumes:
       - octoprint:/octoprint
 
-  ngrok-octo:
-    image: ngrok/ngrok:latest
-    restart: always
-    depends_on:
-      - octoprint
-    command:
-      - "http"
-      - "http://octoprint:80"
-      - "--oauth=google"
-      - "--oauth-allow-email=janhasler01@gmail.com"
-      - "--url=${NGROK_URL}"
+  tailscale:
+    image: tailscale/tailscale:latest
+    hostname: tailscale
     environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
-    ports:
-      - 4040:4040
-
-  ngrok-jpeg:
-    image: ngrok/ngrok:latest
-    network_mode: host
-    restart: always
-    command:
-      - "http"
-      - "http://localhost:8080"
-      - "--oauth=google"
-      - "--oauth-allow-email=janhasler01@gmail.com"
-      - "--url=${NGROK_URL_2}"
-      - "--config"
-      - "/etc/ngrok.yml"
+      - TS_AUTHKEY=${TAILSCALE_AUTHTOKEN}
+      - TS_HOSTNAME=octoprint
+      - TS_EXTRA_ARGS=--advertise-tags=tag:allow
+      - TS_STATE_DIR=/var/lib/tailscale
+      - TS_USERSPACE=false
     volumes:
-      - ./ngrok.yml:/etc/ngrok.yml
-    environment:
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN_2}
-    ports:
-      - 4041:4041
+      - ./tailscale/state:/var/lib/tailscale
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - net_admin
+    restart: unless-stopped
+
 volumes:
   octoprint: {}
